@@ -3,11 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
 class Config:
     # Все значения ТОЛЬКО через os.getenv()
     DB_HOST = os.getenv("DB_HOST")
