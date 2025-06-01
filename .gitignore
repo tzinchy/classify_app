@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.env
+.venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Данные
+*.db
+*.sqlite
+*.pkl
+*.h5
+*.pt
+
+# Логи
+*.log

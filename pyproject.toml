@@ -1,0 +1,20 @@
+[project]
+name = "streamlit-class-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "docx2txt>=0.9",
+    "extra-streamlit-components>=0.1.80",
+    "langdetect>=1.0.9",
+    "pandas>=2.2.3",
+    "plotly>=6.0.1",
+    "pymysql>=1.1.1",
+    "pypdf2>=3.0.1",
+    "python-docx>=1.1.2",
+    "python-dotenv>=1.1.0",
+    "scikit-learn>=1.6.1",
+    "streamlit>=1.45.0",
+    "toml>=0.10.2",
+]
