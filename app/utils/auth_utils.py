@@ -1,18 +1,26 @@
+from joblib import load
 from pathlib import Path
-import pickle
 import streamlit as st
 
 def load_vectorizer():
+    """Загрузка векторизатора с русской обработкой текста"""
     try:
-        # Абсолютный путь внутри контейнера
         model_path = Path("/app/app/models/vectorizer.pkl")
         
-        # Отладочная информация
-        st.write(f"Ищем векторизатор по пути: {model_path}")
-        st.write(f"Файл существует: {model_path.exists()}")
+        # Проверка существования файла
+        if not model_path.exists():
+            st.error(f"Файл векторизатора не найден: {model_path}")
+            raise FileNotFoundError(f"Файл векторизатора не найден: {model_path}")
         
-        with open(model_path, 'rb') as f:
-            return pickle.load(f)
+        # Загрузка с обработкой русской кодировки
+        vectorizer = load(model_path)
+        
+        # Проверка работоспособности
+        test_text = "проверка русского текста"
+        _ = vectorizer.transform([test_text])
+        
+        return vectorizer
+        
     except Exception as e:
         st.error(f"Ошибка загрузки векторизатора: {str(e)}")
         raise
