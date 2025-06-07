@@ -11,14 +11,14 @@ RUN apt-get update && apt-get install -y \
 
 # Копируем requirements.txt
 COPY requirements.txt .
-
-# Устанавливаем Python-зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем весь проект
-COPY . .
+# Копируем только нужные директории
+COPY app/ ./app/
+
+# Создаем симлинк для моделей (если нужно)
+RUN ln -s /app/app/models /app/models 2>/dev/null || true
 
 EXPOSE 8501
 
-# Эта команда будет переопределена в docker-compose.yml
 CMD ["streamlit", "run", "app/main.py", "--server.port=8501", "--server.address=0.0.0.0"]
