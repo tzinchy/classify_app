@@ -60,10 +60,4 @@ def main():
 
 
 if __name__ == "__main__":
-    missing = [name for name, path in MODELS.items() if not os.path.exists(path)]
-    print(*[name for name, path in MODELS.items() if not os.path.exists(path)])
-    
-    if missing:
-        st.error(f"Отсутствуют модели: {', '.join(missing)}")
-        st.stop()
     main()
