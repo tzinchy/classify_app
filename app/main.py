@@ -60,4 +60,8 @@ def main():
 
 
 if __name__ == "__main__":
+    from pathlib import Path
+    models_dir = Path(__file__).parent / "models"
+    print(f"Путь к моделям: {models_dir}")
+    print(f"Содержимое: {list(models_dir.glob('*'))}")
     main()
