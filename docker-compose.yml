@@ -16,7 +16,6 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
-      retries: 5
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -32,12 +31,12 @@ services:
   streamlit:
     build:
       context: .
-      dockerfile: Dockerfile
-    command: bash -c "streamlit run your_app.py --server.port=8501 --server.address=0.0.0.0"
+      dockerfile: docker/Dockerfile
+    command: streamlit run app/main.py --server.port=8501 --server.address=0.0.0.0
     ports:
       - "8501:8501"
     volumes:
-      - .:/app
+      - ./app:/app/app  # монтируем папку с кодом
     env_file:
       - .env
     depends_on:
