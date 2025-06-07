@@ -6,22 +6,24 @@ from config import Config
 db = Database()
 
 # Регистрация администратора
-def admin_register_page():
+def analyst_register_page():
     with st.container():
-        st.title("🔐 Регистрация администратора")
+        st.title("🔐 Регистрация аналитика")
         st.markdown("---")
 
         # Отображение сообщения о успешной регистрации (если есть)
-        if st.session_state.get('admin_registered'):
+        if st.session_state.get('analyst_registered'):
             st.success("""
             ✅ Администратор успешно зарегистрирован!
             
             Для входа в систему используйте специальную ссылку:
-            `ваш_сайт.com/?page=admin_login`
+            `ваш_сайт.com/?page=analyst_login`
             """)
             
-            if st.button("**OK**", type="primary"):
-                st.session_state.admin_registered = False
+            if st.button("**OK**", 
+                        type="primary", 
+                        use_container_width=True):  # Этот параметр растягивает кнопку
+                st.session_state.analyst_registered = False
                 st.query_params.clear()
                 st.rerun()
             
@@ -37,13 +39,13 @@ def admin_register_page():
         )
 
         login = st.text_input(
-            "**Логин администратора**",
+            "**Логин аналитика**",
             placeholder="От 4 до 20 символов",
             help="Латинские буквы и цифры"
         )
 
         email = st.text_input(
-            "**Email администратора**",
+            "**Email аналитика**",
             placeholder="example@domain.com",
             help="Корпоративная почта"
         )
@@ -70,7 +72,7 @@ def admin_register_page():
                 "**Зарегистрировать** →", 
                 type="primary", 
                 use_container_width=True,
-                help="Создать аккаунт администратора"
+                help="Создать аккаунт аналитика"
             )
         
         with col2:
@@ -93,8 +95,8 @@ def admin_register_page():
                 st.error("❌ Неверный секретный ключ")
             else:
                 try:
-                    if db.create_admin_user(login, email, password):
-                        st.session_state.admin_registered = True
+                    if db.create_analyst_user(login, email, password):
+                        st.session_state.analyst_registered = True
                         st.rerun()
                     else:
                         st.error("⚠️ Ошибка регистрации. Возможно, логин уже занят")
@@ -109,8 +111,8 @@ def admin_register_page():
         # Информационный блок
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("""
-        **Требования к учетной записи администратора:**  
-        • Логин: 4-20 символов (латиница и цифры)  
+        **Требования к учетной записи аналитика:**  
+        • Логин: 4-20 символов (латиница и цифры) 
         • Пароль: минимум 12 символов (строчные, заглавные, цифры и спецсимволы)  
         • Действительный корпоративный email  
         • Действительный секретный ключ          

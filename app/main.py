@@ -6,12 +6,12 @@ from pathlib import Path
 from config import Config
 import os
 from pages.user.home_page import user_page
-from pages.admin.admin_dashboard import admin_page
-from pages.admin.admin_register import admin_register_page
-from pages.admin.admin_login import admin_login_page
-from pages.client.client_dashboard import client_page
-from pages.client.client_login import client_login_page
-from pages.client.client_register import client_register_page
+from pages.analyst.analyst_dashboard import analyst_page
+from pages.analyst.analyst_register import analyst_register_page
+from pages.analyst.analyst_login import analyst_login_page
+from pages.emploee.emploee_dashboard import emploee_page
+from pages.emploee.emploee_login import emploee_login_page
+from pages.emploee.emploee_register import emploee_register_page
 
 
 # Добавляем корень проекта в PYTHONPATH
@@ -32,8 +32,8 @@ def main():
         st.session_state.user = None
     if 'client' not in st.session_state:
         st.session_state.client = None
-    if 'admin_step' not in st.session_state:
-        st.session_state.admin_step = None
+    if 'analyst_step' not in st.session_state:
+        st.session_state.analyst_step = None
     if 'vectorizer' not in st.session_state:
         st.session_state.vectorizer = load_vectorizer()
     if 'route' not in st.session_state:
@@ -43,18 +43,18 @@ def main():
     vectorizer = st.session_state.vectorizer
 
     if st.session_state.route == "login":
-        client_login_page()
+        emploee_login_page()
     elif st.session_state.route == "register":
-        client_register_page()
-    elif "admin_register" in current_url:
-        admin_register_page()
-    elif "admin_login" in current_url:
-        admin_login_page()
+        emploee_register_page()
+    elif "analyst_register" in current_url:
+        analyst_register_page()
+    elif "analyst_login" in current_url:
+        analyst_login_page()
     elif user:
         if user.get("id_role") == 2:
-            admin_page(user)
+            analyst_page(user)
         else:
-            client_page(user, vectorizer)
+            emploee_page(user, vectorizer)
     else:
         user_page(vectorizer)
 

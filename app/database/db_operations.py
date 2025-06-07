@@ -51,22 +51,22 @@ class Database:
         
 
     # Методы для работы с пользователями
-    def get_user(self, login):
+    def get_emploee(self, login):
         query = "SELECT * FROM users WHERE login = %s"
         result = self.execute_query(query, (login,))
         return result.iloc[0].to_dict() if not result.empty else None
     
     
-    def get_admin_user(self, login):
+    def get_analyst_user(self, login):
         """Получение только администраторов"""
         query = "SELECT * FROM users WHERE login = %s AND id_role = %s"
         return self.execute_query(query, (login, self.config.ADMIN_ROLE_ID))
     
 
-    def create_user(self, login, email, password, role_id=1):
+    def create_emploee(self, login, email, password, role_id=1):
         """Создание нового пользователя"""
         # Сначала проверяем, нет ли уже такого пользователя
-        if self.get_user(login):
+        if self.get_emploee(login):
             st.error("Пользователь с таким логином уже существует")
             return False
             
@@ -113,7 +113,7 @@ class Database:
             return False
 
     
-    def create_admin_user(self, login, email, password):
+    def create_analyst_user(self, login, email, password):
         """Создание администратора (без проверки ключа)"""
         try:
             with self.connection.cursor() as cursor:
@@ -210,7 +210,7 @@ class Database:
             return None
         
 
-    def get_user_history(self, id_user):
+    def get_emploee_history(self, id_user):
         """Получение истории классификаций пользователя"""
         query = """
         SELECT 
@@ -251,7 +251,7 @@ class Database:
         return self.execute_query(query)
     
 
-    def user_exists(self, login, email):
+    def emploee_exists(self, login, email):
         with self.connection.cursor() as cursor:
             cursor.execute(
                 "SELECT 1 FROM users WHERE login = %s OR email = %s LIMIT 1",

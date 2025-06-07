@@ -6,17 +6,16 @@ from langdetect import detect
 import numpy as np
 
 
-# Конфигурация моделей для классификации единичного файла
+# Model configurations for single file classification
 MODELS = {
     "Наивный Байес": "models/naive_bayes.pkl",
     "Метод опорных векторов (SVC)": "models/svc.pkl",
     "Логистическая регрессия": "models/logistic_regression.pkl",
     "Случайный лес": "models/random_forest.pkl",
-    "Кластеризация": "models/clasterisation.pkl",
-    "Ансамбль моделей (детектор аномалий)": "models/anomaly_clf.pkl"
+    "Кластеризация": "models/clasterisation.pkl"
 }
 
-# Конфигурация моделей для классификации .zip архивов
+# Model configurations for .zip archive classification
 MODELS_ZIP = {
     "Наивный Байес": "models/naive_bayes.pkl",
     "Метод опорных векторов (SVC)": "models/svc.pkl",
@@ -25,33 +24,37 @@ MODELS_ZIP = {
     "Кластеризация": "models/clasterisation.pkl",
 }
 
-
 class AnomalyAwareClassifier:
+    """Classifier with integrated anomaly detection capability"""
+    
     def __init__(self, knn_model, classifier, vectorizer, threshold=0.6):
+        """Initialize with KNN model, base classifier and vectorizer"""
         self.knn = knn_model
         self.clf = classifier
         self.vectorizer = vectorizer
         self.threshold = threshold
 
     def is_anomaly(self, vector):
+        """Check if sample is anomalous based on KNN distance threshold"""
         distances, _ = self.knn.kneighbors(vector, n_neighbors=1)
         return distances[0][0] > self.threshold
-
+    
     def predict(self, text):
+        """Predict class for raw text input"""
         vector = self.vectorizer.transform([text])
         return self.predict_vector(vector)
 
     def predict_vector(self, vector):
+        """Predict class for vectorized text, returns ('Аномалия', '-') if anomalous"""
         if self.is_anomaly(vector):
             return "Аномалия", "-"
         else:
             label = self.clf.predict(vector)[0]
             confidence = f"{self.clf.predict_proba(vector).max():.2f}" if hasattr(self.clf, "predict_proba") else "-"
             return label, confidence
-        
 
-# Загрузчик моделей
 def load_model(model_name):
+    """Load trained model from pickle file with validation checks"""
     try:
         if model_name not in MODELS:
             st.error(f"Неизвестная модель: {model_name}")
@@ -62,8 +65,11 @@ def load_model(model_name):
             st.error(f"Файл модели {model_path} не найден")
             return None
             
+        # Make sure AnomalyAwareClassifier is available when unpickling
+        global AnomalyAwareClassifier
         model = joblib.load(model_path)
         
+        # Special validation for anomaly detector
         if model_name == "Ансамбль моделей (детектор аномалий)":
             if not isinstance(model, AnomalyAwareClassifier):
                 st.error("Модель ансамблей должна быть экземпляром AnomalyAwareClassifier")
@@ -79,21 +85,25 @@ def load_model(model_name):
         return None
     
 
-# Классификация документов в зависимости от модели
 def classify_document(uploaded_file, model_name, vectorizer):
+    """Classify document using specified model and return results"""
     try:
+        # Extract and validate text
         text = extract_text_from_file(uploaded_file)
         if not text or len(text.strip()) < 10:
             return None, None, text[:500], 0, detect(text)
         
+        # Vectorize text and load model
         vector = vectorizer.transform([text])
         model = load_model(model_name)
         
         if model is None:
             return None, None, text[:500], len(text.split()), detect(text)
         
+        # Detect language if enough text
         lang = detect(text) if len(text) > 50 else "Неизвестно"
         
+        # Handle different model types
         if model_name == "Ансамбль моделей (детектор аномалий)":
             label, conf_str = model.predict_vector(vector)
             prediction = label
@@ -103,9 +113,10 @@ def classify_document(uploaded_file, model_name, vectorizer):
                 confidence = None
         elif model_name == "Кластеризация":
             prediction = model.predict(vector)[0]
-            confidence = None  # Для кластеризации уверенность не определяется
+            confidence = None  # Clustering doesn't provide confidence scores
         else:
             try:
+                # Try different prediction methods
                 if hasattr(model, "predict_proba"):
                     proba = model.predict_proba(vector)[0]
                     prediction = model.classes_[np.argmax(proba)]
@@ -116,7 +127,7 @@ def classify_document(uploaded_file, model_name, vectorizer):
                     confidence = (scores.max() - scores.min()) / 10
                 else:
                     prediction = model.predict(vector)[0]
-                    confidence = None  # Для моделей без оценки уверенности
+                    confidence = None
             except Exception as e:
                 st.error(f"Ошибка предсказания: {str(e)}")
                 return None, None, text[:500], len(text.split()), lang

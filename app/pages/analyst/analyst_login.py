@@ -4,13 +4,12 @@ from database.db_operations import Database
 
 db = Database()
 
-# Авторизация администратора
-def admin_login_page():
-    # Контейнер для центрирования формы
+# Авторизация аналитика
+def analyst_login_page():
     with st.container():
-        st.title("🔐 Вход администратора")
+        st.title("🔐 Авторизация аналитика")
         st.markdown("---")  # Декоративная линия
-
+    
         # Обработка выхода при наличии флага
         if st.session_state.get('force_logout'):
             st.session_state.force_logout = False
@@ -20,7 +19,7 @@ def admin_login_page():
             st.rerun()
 
         # Поля ввода с иконками через псевдо-элементы
-        login = st.text_input("**Логин администратора**", 
+        login = st.text_input("**Логин аналитика**", 
                             placeholder="Введите ваш логин",
                             help="Используйте корпоративный логин")
 
@@ -48,12 +47,12 @@ def admin_login_page():
 
         # Обработка входа (вынесена из колонки)
         if login_clicked:
-            user = db.get_user(login)
-            if user and user['id_role'] == 2 and user['password_hash'] == db._hash_password(password):
+            emploee = db.get_emploee(login)
+            if emploee and emploee['id_role'] == 2 and emploee['password_hash'] == db._hash_password(password):
                 st.session_state.user = {
-                    "id": user["id"],
-                    "login": user["login"],
-                    "id_role": user["id_role"]
+                    "id": emploee["id"],
+                    "login": emploee["login"],
+                    "id_role": emploee["id_role"]
                 }
                 st.session_state.route = None
                 st.query_params.clear()

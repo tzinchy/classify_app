@@ -1,7 +1,7 @@
 import streamlit as st
 from database.db_operations import Database
 from utils.auth_utils import load_vectorizer
-from utils.ml_utils import MODELS, MODELS_ZIP, classify_document, load_model, AnomalyAwareClassifier
+from utils.ml_utils import MODELS, MODELS_ZIP, classify_document, load_model
 from utils.file_utils import extract_text_from_file
 import pandas as pd
 import plotly.express as px
@@ -15,7 +15,7 @@ import zipfile
 db = Database()
 
 # Окно администратора
-def admin_page(user, vectorizer=None):
+def analyst_page(user, vectorizer=None):
     if not user:
         st.error("Пожалуйста, войдите в систему для доступа к этой странице.")
         st.stop()
@@ -44,10 +44,13 @@ def admin_page(user, vectorizer=None):
         }
         return class_map.get(pred, pred)
 
-    st.title(f"Админ-панель ({user['login']})")
-    if st.button("Выйти"):
-        st.session_state.user = None
-        st.rerun()
+    header_col1, header_col2 = st.columns([4, 1])
+    with header_col1:
+        st.title(f"Добро пожаловать, {user['login']}")
+    with header_col2:
+        if st.button("🚪 Выйти", key="logout_btn", use_container_width=True):
+            st.session_state.user = None
+            st.rerun()
 
     st.markdown("### 📄 Классификация документа")
     model_name = st.selectbox("🧠 Модель", list(MODELS.keys()), key="client_model",

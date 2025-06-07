@@ -1,6 +1,6 @@
 import streamlit as st
 from database.db_operations import Database
-from utils.ml_utils import MODELS, MODELS_ZIP, classify_document, load_model, AnomalyAwareClassifier
+from utils.ml_utils import MODELS, MODELS_ZIP, classify_document, load_model
 from utils.file_utils import extract_text_from_file
 import plotly.express as px
 import pandas as pd
@@ -14,18 +14,19 @@ import shutil
 db = Database()
 
 # Личный кабинет клиента
-def client_page(user, vectorizer):
+def emploee_page(user, vectorizer):
     # Проверка авторизации
     if not user:
         st.error("Пожалуйста, войдите в систему для доступа к этой странице.")
         st.stop()
 
-    st.title(f"Добро пожаловать, {user['login']}")
-
-    # Кнопка выхода
-    if st.button("Выйти"):
-        st.session_state.user = None
-        st.rerun()
+    header_col1, header_col2 = st.columns([4, 1])
+    with header_col1:
+        st.title(f"Добро пожаловать, {user['login']}")
+    with header_col2:
+        if st.button("🚪 Выйти", key="logout_btn", use_container_width=True):
+            st.session_state.user = None
+            st.rerun()
 
     # Функция перевода классов для всех моделей
     def translate_class(pred, model):
@@ -303,156 +304,235 @@ def client_page(user, vectorizer):
     st.markdown("---")
     st.subheader("📋 История операций")
 
-    def get_russian_class(eng_class):
-        class_map = {
+    try:
+        # Получаем данные из БД
+        df = db.get_emploee_history(user["id"])
+        
+        if df.empty:
+            st.info("📭 Нет данных для отображения")
+            return
+
+        # Подготовка данных
+        df = df.rename(columns={
+            'filename': 'document_name',
+            'predicted_class': 'prediction',
+            'created_at': 'classification_date',
+            'rating': 'user_rating',
+            'comment_user': 'user_comment'
+        })
+
+        # Перевод классов документов
+        class_translation = {
             "Order": "Приказ",
             "Ordinance": "Постановление",
             "Letters": "Письмо",
             "Miscellaneous": "Общее",
-            0: "Приказ",
-            1: "Постановление",
-            2: "Письмо",
-            3: "Общее",
+            0: "Приказ", 1: "Постановление", 2: "Письмо", 3: "Общее"
         }
-        return class_map.get(eng_class, eng_class)
-
-    # Получение истории пользователя
-    history = db.get_user_history(user["id"])
-
-    # Проверка наличия данных
-    if history is None or not isinstance(history, pd.DataFrame) or history.empty:
-        st.info("История операций отсутствует")
-        st.stop()
-
-    # Переименование колонок и обработка данных
-    history = history.rename(columns={
-        'filename': 'Документ',
-        'model_used': 'Модель',
-        'predicted_class': 'Класс',
-        'confidence': 'Уверенность',
-        'created_at': 'Дата',
-        'rating': 'Оценка',
-        'comment_user': 'Комментарий'
-    })
-
-    # Обработка данных
-    history['Дата'] = pd.to_datetime(history['Дата'])
-    min_date, max_date = history['Дата'].min().date(), history['Дата'].max().date()
-    history['Категория'] = history['Класс'].apply(get_russian_class)
-
-    # === ФИЛЬТРЫ ===
-    with st.sidebar.expander("🔎 Фильтры", expanded=True):
-        st.markdown("### Основные фильтры")
-        date_range = st.date_input("📅 Диапазон дат", [min_date, max_date], min_value=min_date, max_value=max_date)
-        search_query = st.text_input("🔍 Поиск по названию")
+        df['russian_category'] = df['prediction'].map(class_translation).fillna(df['prediction'])
         
-        categories = history['Категория'].unique().tolist()
-        selected_categories = st.multiselect("📂 Категории", categories, default=categories)
-        
-        models = history['Модель'].unique().tolist()
-        selected_models = st.multiselect("🧠 Модели", models, default=models)
-        
-        st.markdown("### Фильтры оценок")
-        min_rating, max_rating = st.slider(
-            "⭐ Оценка пользователя", 
-            min_value=1, 
-            max_value=5, 
-            value=(1, 5),
-            step=1
+        # Форматирование данных
+        df['classification_date'] = pd.to_datetime(df['classification_date'], errors='coerce')
+        df = df.dropna(subset=['classification_date'])
+        df['formatted_confidence'] = df['confidence'].apply(
+            lambda x: f"{float(x)*100:.1f}%" if pd.notnull(x) and str(x).replace('.','',1).isdigit() else "—"
         )
-        show_only_rated = st.checkbox("Показать только с оценками", value=False)
+        df['formatted_date'] = df['classification_date'].dt.strftime('%d.%m.%Y %H:%M')
 
-    # Применение фильтров
-    if len(date_range) == 2:
-        start_date = pd.to_datetime(date_range[0])
-        end_date = pd.to_datetime(date_range[1]) + pd.Timedelta(days=1)
-        history = history[(history['Дата'] >= start_date) & (history['Дата'] < end_date)]
+        # Фильтры в сайдбаре
+        with st.sidebar.expander("🔎 Фильтры", expanded=True):
+            st.markdown("### Основные фильтры")
+            
+            # Диапазон дат
+            min_date = df['classification_date'].min().date()
+            max_date = df['classification_date'].max().date()
+            date_range = st.date_input(
+                "📅 Диапазон дат",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date
+            )
+            
+            # Поиск по названию файла
+            search_query = st.text_input(
+                "🔍 Поиск по названию",
+                placeholder="Введите часть названия файла"
+            )
 
-    if search_query:
-        history = history[history['Документ'].str.contains(search_query, case=False, na=False)]
+            # Фильтр по категориям
+            selected_categories = st.multiselect(
+                "📂 Категории документов",
+                options=sorted(df['russian_category'].unique()),
+                default=sorted(df['russian_category'].unique())
+            )
+            
+            # Фильтр по моделям
+            selected_models = st.multiselect(
+                "🧠 Использованные модели",
+                options=df['model_used'].unique(),
+                default=df['model_used'].unique()
+            )
+            
+            # Фильтр по оценкам
+            if 'user_rating' in df.columns and not df['user_rating'].isna().all():
+                st.markdown("### Фильтры оценок")
+                min_rating, max_rating = st.slider(
+                    "⭐ Диапазон оценок", 
+                    min_value=1, 
+                    max_value=5, 
+                    value=(1, 5), 
+                    step=1
+                )
+                show_rated_only = st.checkbox("Только с оценками", value=False)
 
-    if selected_categories:
-        history = history[history['Категория'].isin(selected_categories)]
-
-    if selected_models:
-        history = history[history['Модель'].isin(selected_models)]
-
-    # Фильтрация по оценкам
-    if show_only_rated:
-        history = history[history['Оценка'].notna()]
-    else:
-        history['Оценка'] = history['Оценка'].apply(lambda x: x if pd.notna(x) else "—")
-
-    history = history[(history['Оценка'].apply(lambda x: min_rating <= x <= max_rating if isinstance(x, (int, float)) else not show_only_rated))]
-
-    # Сортировка и форматирование
-    history = history.sort_values(['Дата', 'Категория'], ascending=[False, True])
-    history['Дата'] = history['Дата'].dt.strftime('%d.%m.%Y %H:%M')
-    history['Уверенность'] = history['Уверенность'].apply(
-        lambda x: f"{float(x) * 100:.1f}%" if pd.notnull(x) else "—"
-    )
-
-    # === ВИЗУАЛИЗАЦИЯ ===
-    with st.expander("📊 Визуализация данных", expanded=False):
-        col1, col2 = st.columns(2)
+        # Применение фильтров
+        filtered_df = df.copy()
         
-        with col1:
-            st.markdown("**Распределение по категориям**")
-            fig_cat = px.pie(history, names='Категория')
-            st.plotly_chart(fig_cat, use_container_width=True)
+        # Фильтр по дате
+        if len(date_range) == 2:
+            start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1]) + pd.Timedelta(days=1)
+            filtered_df = filtered_df[
+                (filtered_df['classification_date'] >= start_date) & 
+                (filtered_df['classification_date'] <= end_date)
+            ]
+
+        # Остальные фильтры
+        if search_query:
+            filtered_df = filtered_df[filtered_df['document_name'].str.contains(search_query, case=False, na=False)]
         
-        with col2:
-            st.markdown("**Распределение по моделям**")
-            fig_model = px.pie(history, names='Модель')
-            st.plotly_chart(fig_model, use_container_width=True)
+        if selected_categories:
+            filtered_df = filtered_df[filtered_df['russian_category'].isin(selected_categories)]
         
-        # График оценок (если есть оценки)
-        if not history[history['Оценка'] != "—"].empty:
-            st.markdown("**Распределение оценок**")
-            fig_rating = px.histogram(history[history['Оценка'] != "—"], x='Оценка', nbins=5)
-            st.plotly_chart(fig_rating, use_container_width=True)
-
-    # === ПАГИНАЦИЯ ===
-    ITEMS_PER_PAGE = 50
-    total_records = len(history)
-
-    if total_records > ITEMS_PER_PAGE:
-        total_pages = (total_records // ITEMS_PER_PAGE) + (1 if total_records % ITEMS_PER_PAGE else 0)
-        page = st.number_input(
-            "Страница", 
-            min_value=1, 
-            max_value=total_pages, 
-            value=1
-        )
-        start_idx = (page - 1) * ITEMS_PER_PAGE
-        end_idx = min(start_idx + ITEMS_PER_PAGE, total_records)
+        if selected_models:
+            filtered_df = filtered_df[filtered_df['model_used'].isin(selected_models)]
         
-        # Получаем данные для текущей страницы
-        paginated_history = history.iloc[start_idx:end_idx]
-    else:
-        paginated_history = history
+        # Фильтрация по оценкам (если есть оценки)
+        if 'user_rating' in filtered_df.columns and not filtered_df['user_rating'].isna().all():
+            if show_rated_only:
+                filtered_df = filtered_df[
+                    filtered_df['user_rating'].notna() & 
+                    filtered_df['user_rating'].between(min_rating, max_rating)
+                ]
+            else:
+                filtered_df = filtered_df[
+                    filtered_df['user_rating'].isna() | 
+                    filtered_df['user_rating'].between(min_rating, max_rating)
+                ]
 
-    # === ТАБЛИЦА С ДАННЫМИ ===
-    columns_to_show = ['Документ', 'Модель', 'Категория', 'Уверенность', 'Дата', 'Оценка', 'Комментарий']
+        # Сортировка по дате (новые сверху)
+        filtered_df = filtered_df.sort_values('classification_date', ascending=False)
 
-    st.dataframe(
-        paginated_history[columns_to_show],
-        column_config={
-            "Дата": st.column_config.TextColumn("Дата"),
-            "Документ": "Документ",
-            "Модель": "Модель",
-            "Категория": "Категория",
-            "Уверенность": st.column_config.TextColumn("Уверенность"),
-            "Оценка": st.column_config.NumberColumn("Оценка", format="%d"),
-            "Комментарий": "Комментарий"
-        },
-        hide_index=True,
-        use_container_width=True,
-        height=600
-    )
+        # Основные метрики
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Всего операций", len(filtered_df))
+        col2.metric("Уникальных моделей", filtered_df['model_used'].nunique())
+        
+        # Средняя оценка (если есть)
+        if 'user_rating' in filtered_df.columns and not filtered_df['user_rating'].isna().all():
+            avg_rating = filtered_df['user_rating'].mean()
+            col3.metric("Средняя оценка", f"{avg_rating:.1f}")
+        else:
+            col3.metric("Оценок", "Нет данных")
 
-    # Отображение информации о записях ПОД таблицей
-    if total_records > ITEMS_PER_PAGE:
-        st.caption(f"Показаны записи {start_idx + 1}-{end_idx} из {total_records}")
-    else:
-        st.caption(f"Всего записей: {total_records}")
+        # Вкладки
+        tab1, tab2 = st.tabs(["📋 Таблица операций", "📊 Статистика"])
+
+        with tab1:
+            # Настройки пагинации
+            items_per_page = 20
+            total_records = len(filtered_df)
+            total_pages = (total_records // items_per_page) + (1 if total_records % items_per_page else 0)
+            
+            # Получаем данные для текущей страницы
+            if total_pages > 1:
+                page = st.number_input(
+                    "Страница", 
+                    min_value=1, 
+                    max_value=total_pages, 
+                    value=1,
+                    key="pagination_page"
+                )
+                start_idx = (page - 1) * items_per_page
+                end_idx = min(start_idx + items_per_page, total_records)
+                paginated_df = filtered_df.iloc[start_idx:end_idx]
+            else:
+                paginated_df = filtered_df
+
+            # Отображаемые колонки
+            display_columns = {
+                'formatted_date': 'Дата операции',
+                'document_name': 'Название документа',
+                'model_used': 'Использованная модель',
+                'russian_category': 'Категория',
+                'formatted_confidence': 'Уверенность модели',
+                'user_rating': 'Ваша оценка',
+                'user_comment': 'Ваш комментарий'
+            }
+
+            # Таблица данных
+            st.dataframe(
+                paginated_df[list(display_columns.keys())].rename(columns=display_columns),
+                column_config={
+                    "Дата операции": st.column_config.TextColumn(width="medium"),
+                    "Название документа": st.column_config.TextColumn(width="large"),
+                    "Использованная модель": st.column_config.TextColumn(width="medium"),
+                    "Категория": st.column_config.TextColumn(width="small"),
+                    "Уверенность модели": st.column_config.TextColumn(width="small"),
+                    "Ваша оценка": st.column_config.NumberColumn(format="%d", width="small"),
+                    "Ваш комментарий": st.column_config.TextColumn(width="large")
+                },
+                hide_index=True,
+                use_container_width=True,
+                height=500
+            )
+            
+            # Отображение пагинации
+            if total_pages > 1:
+                st.caption(f"Показаны записи {start_idx+1}-{end_idx} из {total_records}")
+
+        with tab2:
+            if not filtered_df.empty:
+                col1, col2 = st.columns(2)
+                
+                # Распределение по категориям
+                with col1:
+                    st.plotly_chart(
+                        px.pie(
+                            filtered_df['russian_category'].value_counts(),
+                            names=filtered_df['russian_category'].value_counts().index,
+                            values=filtered_df['russian_category'].value_counts().values,
+                            title="Распределение по категориям",
+                            hole=0.3
+                        ),
+                        use_container_width=True
+                    )
+                
+                # Распределение по моделям
+                with col2:
+                    st.plotly_chart(
+                        px.bar(
+                            filtered_df['model_used'].value_counts(),
+                            x=filtered_df['model_used'].value_counts().index,
+                            y=filtered_df['model_used'].value_counts().values,
+                            title="Использованные модели",
+                            labels={'x': 'Модель', 'y': 'Количество'}
+                        ),
+                        use_container_width=True
+                    )
+                
+                # Распределение оценок (если есть)
+                if 'user_rating' in filtered_df.columns and not filtered_df['user_rating'].isna().all():
+                    st.plotly_chart(
+                        px.histogram(
+                            filtered_df[filtered_df['user_rating'].notna()],
+                            x='user_rating',
+                            nbins=5,
+                            title="Распределение ваших оценок",
+                            labels={'user_rating': 'Оценка'}
+                        ),
+                        use_container_width=True
+                    )
+
+    except Exception as e:
+        st.error(f"Ошибка при загрузке данных: {str(e)}")
+        st.error("Попробуйте обновить страницу или обратитесь к администратору")

@@ -6,7 +6,7 @@ import re
 db = Database()
 
 # Регистрация клиента
-def client_register_page():
+def emploee_register_page():
     # Инициализация состояния
     if 'route' not in st.session_state:
         st.session_state.route = 'register'
@@ -78,14 +78,14 @@ def client_register_page():
                 error = "❌ Пароль должен быть 8-25 символов"
             elif password != confirm:
                 error = "❌ Пароли не совпадают"
-            elif db.user_exists(login, email):
+            elif db.emploee_exists(login, email):
                 error = "⚠️ Пользователь с таким логином или email уже существует"
             
             if error:
                 st.error(error, icon="🚨")
             else:
                 # Если все проверки пройдены, создаем пользователя
-                if db.create_user(login, email, password):
+                if db.create_emploee(login, email, password):
                     st.success("🎉 Регистрация успешно завершена!")
                     st.session_state.route = "login"
                     st.rerun()

@@ -5,7 +5,7 @@ from database.db_operations import Database
 db = Database()
 
 # Авторизация клиента
-def client_login_page():
+def emploee_login_page():
     # Контейнер с улучшенным дизайном
     with st.container():
         st.title("👤 Вход в систему")
@@ -44,7 +44,7 @@ def client_login_page():
 
         # Обработка входа
         if login_clicked:
-            user = db.get_user(login)
+            user = db.get_emploee(login)
             if user and user["id_role"] == 1 and user['password_hash'] == db._hash_password(password):
                 st.session_state.user = {
                     "id": user["id"],
@@ -57,7 +57,7 @@ def client_login_page():
             else:
                 msg_container.error("❌ Неверный логин или пароль")
 
-        # Дополнительные элементы - ЗАМЕНЯЕМ "ссылки" на настоящие кнопки
+        # Дополнительные элементы
         st.markdown("<br>", unsafe_allow_html=True)
 
         st.info("""
@@ -69,19 +69,9 @@ def client_login_page():
 
         st.markdown('---')
 
-        # Создаем колонки для кнопок "помощи"
-        help_col1, help_col2 = st.columns(2)
-        
-        with help_col1:
-            if st.button("**Восстановить пароль**", 
-                        help="Нажмите, если забыли пароль",
-                        use_container_width=True):
-                st.session_state.route = "password_recovery"  # Предполагая, что у вас есть такой route
-                st.rerun()
-        
-        with help_col2:
-            if st.button("**Регистрация нового аккаунта**", 
-                        help="Нажмите для создания нового аккаунта",
-                        use_container_width=True):
-                st.session_state.route = "register"  # Переход на страницу регистрации
-                st.rerun()
+        # Кнопка регистрации на всю ширину
+        if st.button("**Регистрация нового аккаунта**", 
+                    help="Нажмите для создания нового аккаунта",
+                    use_container_width=True):
+            st.session_state.route = "register"  # Переход на страницу регистрации
+            st.rerun()

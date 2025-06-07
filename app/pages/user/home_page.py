@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
-from utils.ml_utils import MODELS, classify_document, AnomalyAwareClassifier
+from utils.ml_utils import MODELS, classify_document
 import time
 
 
