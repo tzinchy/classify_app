@@ -21,11 +21,11 @@ MODELS = {
 
 # Model configurations for .zip archive classification
 MODELS_ZIP = {
-    "Наивный Байес": "models/naive_bayes.pkl",
-    "Метод опорных векторов (SVC)": "models/svc.pkl",
-    "Логистическая регрессия": "models/logistic_regression.pkl",
-    "Случайный лес": "models/random_forest.pkl",
-    "Кластеризация": "models/clasterisation.pkl",
+    "Наивный Байес": str(MODEL_DIR / "naive_bayes.pkl"),
+    "Метод опорных векторов (SVC)": str(MODEL_DIR / "svc.pkl"),
+    "Логистическая регрессия": str(MODEL_DIR / "logistic_regression.pkl"),
+    "Случайный лес": str(MODEL_DIR / "random_forest.pkl"),
+    "Кластеризация": str(MODEL_DIR / "clasterisation.pkl")
 }
 
 class AnomalyAwareClassifier:
