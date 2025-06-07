@@ -4,15 +4,19 @@ import os
 from .file_utils import extract_text_from_file
 from langdetect import detect
 import numpy as np
+import os
+from pathlib import Path
 
+# BASE_DIR будет указывать на папку, где находится текущий скрипт (app/)
+BASE_DIR = Path(__file__).parent.resolve()
+MODEL_DIR = BASE_DIR / "models"
 
-# Model configurations for single file classification
 MODELS = {
-    "Наивный Байес": "models/naive_bayes.pkl",
-    "Метод опорных векторов (SVC)": "models/svc.pkl",
-    "Логистическая регрессия": "models/logistic_regression.pkl",
-    "Случайный лес": "models/random_forest.pkl",
-    "Кластеризация": "models/clasterisation.pkl"
+    "Наивный Байес": str(MODEL_DIR / "naive_bayes.pkl"),
+    "Метод опорных векторов (SVC)": str(MODEL_DIR / "svc.pkl"),
+    "Логистическая регрессия": str(MODEL_DIR / "logistic_regression.pkl"),
+    "Случайный лес": str(MODEL_DIR / "random_forest.pkl"),
+    "Кластеризация": str(MODEL_DIR / "clasterisation.pkl")
 }
 
 # Model configurations for .zip archive classification
