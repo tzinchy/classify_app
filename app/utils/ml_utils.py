@@ -7,25 +7,24 @@ import numpy as np
 import os
 from pathlib import Path
 
-# BASE_DIR будет указывать на папку, где находится текущий скрипт (app/)
-BASE_DIR = Path(__file__).parent.resolve()
-MODEL_DIR = BASE_DIR / "models"
+BASE_DIR = Path(__file__).parent.parent.resolve()  # Путь к папке app/
+MODELS_DIR = BASE_DIR / "app" / "models"  # Путь к моделям
 
 MODELS = {
-    "Наивный Байес": str(MODEL_DIR / "naive_bayes.pkl"),
-    "Метод опорных векторов (SVC)": str(MODEL_DIR / "svc.pkl"),
-    "Логистическая регрессия": str(MODEL_DIR / "logistic_regression.pkl"),
-    "Случайный лес": str(MODEL_DIR / "random_forest.pkl"),
-    "Кластеризация": str(MODEL_DIR / "clasterisation.pkl")
+    "Наивный Байес": str(MODELS_DIR / "naive_bayes.pkl"),
+    "Метод опорных векторов (SVC)": str(MODELS_DIR / "svc.pkl"),
+    "Логистическая регрессия": str(MODELS_DIR / "logistic_regression.pkl"),
+    "Случайный лес": str(MODELS_DIR / "random_forest.pkl"),
+    "Кластеризация": str(MODELS_DIR / "clasterisation.pkl")
 }
 
 # Model configurations for .zip archive classification
 MODELS_ZIP = {
-    "Наивный Байес": str(MODEL_DIR / "naive_bayes.pkl"),
-    "Метод опорных векторов (SVC)": str(MODEL_DIR / "svc.pkl"),
-    "Логистическая регрессия": str(MODEL_DIR / "logistic_regression.pkl"),
-    "Случайный лес": str(MODEL_DIR / "random_forest.pkl"),
-    "Кластеризация": str(MODEL_DIR / "clasterisation.pkl")
+    "Наивный Байес": str(MODELS_DIR / "naive_bayes.pkl"),
+    "Метод опорных векторов (SVC)": str(MODELS_DIR / "svc.pkl"),
+    "Логистическая регрессия": str(MODELS_DIR / "logistic_regression.pkl"),
+    "Случайный лес": str(MODELS_DIR / "random_forest.pkl"),
+    "Кластеризация": str(MODELS_DIR / "clasterisation.pkl")
 }
 
 class AnomalyAwareClassifier:
